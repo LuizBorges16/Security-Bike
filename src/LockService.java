@@ -1,4 +1,6 @@
 import java.util.List;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 public class LockService {
     private static final double STOPPED_SPEED_KMH = 0.1;
@@ -13,11 +15,29 @@ public class LockService {
         }
 
         SpeedReading last = readings.get(readings.size() - 1);
+        long idadeEmSegundos = Duration.between(last.getRecordedAt(), LocalDateTime.now()).getSeconds();
+
+
+        if (idadeEmSegundos > MAX_READING_AGE_SECONDS) {
+            return false;
+        }
 
         if (last.getSpeedKmh() < STOPPED_SPEED_KMH) {
             return true;
         }
 
-        return false;   // provisório
+        SpeedReading first = readings.get(0);
+        long coberturaSegundos = Duration.between(first.getRecordedAt(), LocalDateTime.now()).getSeconds();
+        if (coberturaSegundos < MIN_SECONDS_BELOW) {
+            return false;
+        }
+        LocalDateTime windowStart = LocalDateTime.now().minusSeconds(MIN_SECONDS_BELOW);
+        for (SpeedReading r : readings){
+            if (r.getRecordedAt().isAfter(windowStart) && r.getSpeedKmh() >= MAX_SPEED_KMH){
+                return false;
+            }
+        }
+
+        return true;
     }
 }
